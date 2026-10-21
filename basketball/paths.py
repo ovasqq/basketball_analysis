@@ -7,3 +7,5 @@ CALIBRATION = ROOT / "calibration.json"
 IMAGES = ROOT / "images"
 SOURCE_DIR = IMAGES / "source"     # исходные кадры (в git)
 OUTPUT_DIR = IMAGES / "output"     # результаты запусков (в .gitignore)
+WEIGHTS_DIR = ROOT / "weights"     # веса нейросетей (в .gitignore, скачиваются отдельно)
+KALICALIB_WEIGHTS = WEIGHTS_DIR / "kalicalib_challenge.pth"

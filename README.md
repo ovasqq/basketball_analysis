@@ -8,7 +8,9 @@
 | `main.py` | CLI |
 | `basketball/homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
 | `basketball/markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
-| `basketball/paths.py` | пути проекта (калибровка, папки с изображениями) |
+| `basketball/kalicalib.py` | автокалибровка нейросетью KaliCalib (необязательно, нужен torch) |
+| `basketball/_vendor/kalicalib/` | архитектура сети из KaliCalib без изменений, лицензия CeCILL 2.1 |
+| `basketball/paths.py` | пути проекта (калибровка, папки с изображениями, веса) |
 | `tools/click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
 | `tests/` | быстрые проверки |
 | `OCCLUSION.md` | как не рисовать разметку поверх объектов |
@@ -24,6 +26,36 @@ python tests/test_homography.py
 
 Оси корта: X вдоль длины (0..28 м), Y поперёк (0..15 м), начало координат в ближнем
 к камере левом углу, Y растёт от камеры.
+
+## Автокалибровка нейросетью (KaliCalib)
+
+Вместо ручных точек из `calibration.json` их находит сеть
+[KaliCalib](https://github.com/CEA-LIST/KaliCalib) (ResNet18 + декодер, MMSports 2022):
+91 ключевая точка на сетке по полу корта → та же `CourtHomography` с RANSAC.
+Ручной режим не меняется; сеть включается флагом `--auto`.
+
+```
+pip install -r requirements-nn.txt        # torch (или: pip install -e ".[nn]")
+curl -L -o weights/kalicalib_challenge.pth \
+  https://github.com/CEA-LIST/KaliCalib/raw/main/models/model_challenge.pth
+shasum -a 256 weights/kalicalib_challenge.pth
+#   ab2ec59e87fd028740494302f17bcdf2dc0269f6499b4a559fc411f9d507fee7
+python main.py --auto --frame images/source/frame.jpg --highlight images/output/auto.jpg
+python tests/test_kalicalib.py
+```
+
+Из кода: `KaliCalib(weights).homography(frame)` возвращает `CourtHomography`;
+`.keypoints(frame)` — сами точки (пиксели, метры, уверенность).
+
+Что известно на `images/source/frame.jpg` (сеть не дообучалась):
+- найдено 80 из 91 точки, RANSAC оставил 55, медиана ошибки по ним ~19 px;
+- расхождение с ручной калибровкой 12–45 px (хуже всего у ближней боковой);
+- кадр 3:2 растягивается до 960×540 (16:9), как при обучении; сеть обучена
+  на других аренах и ракурсах (DeepSport), так что на новых залах проверяйте глазами.
+
+Лицензия KaliCalib — CeCILL 2.1 (GPL-совместимая): для внутренних экспериментов
+ограничений нет, но при распространении кода с `basketball/_vendor/kalicalib/`
+действуют её условия.
 
 ---
 

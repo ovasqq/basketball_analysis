@@ -10,5 +10,9 @@ requires-python = ">=3.10"
 # Точные версии для воспроизводимости -- в requirements.txt.
 dependencies = ["numpy", "opencv-python"]
 
+[project.optional-dependencies]
+# Автокалибровка нейросетью (basketball/kalicalib.py, main.py --auto).
+nn = ["torch"]
+
 [tool.setuptools]
 packages = ["basketball"]
