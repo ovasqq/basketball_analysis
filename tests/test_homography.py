@@ -1,4 +1,4 @@
-"""Быстрые проверки калибровки. Запуск: python tests/test_homography.py (или pytest)."""
+"""Быстрые проверки калибровки. Запуск из корня проекта: python -m tests.test_homography"""
 from __future__ import annotations
 
 import warnings

@@ -9,7 +9,7 @@
 | `basketball/homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
 | `basketball/markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
 | `basketball/kalicalib.py` | автокалибровка нейросетью KaliCalib (необязательно, нужен torch) |
-| `basketball/_vendor/kalicalib/` | архитектура сети из KaliCalib без изменений, лицензия CeCILL 2.1 |
+| `basketball/kalicalib_model.py` | архитектура сети KaliCalib (копия, см. ниже) |
 | `basketball/paths.py` | пути проекта (калибровка, папки с изображениями, веса) |
 | `tools/click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
 | `tests/` | быстрые проверки |
@@ -17,11 +17,13 @@
 | `images/source/` | исходные кадры (в git) |
 | `images/output/` | результаты запусков: вид сверху, подсветка (не в git) |
 
+Все команды запускаются **из корня проекта**. Скрипты в подпапках, которые
+импортируют `basketball` (тесты), запускаются через `python -m`.
+
 ```
 pip install -r requirements.txt
-pip install -e .     # пакет basketball виден из любого скрипта, правки подхватываются сразу
 python main.py --frame images/source/frame.jpg --highlight images/output/frame_lightened.jpg
-python tests/test_homography.py
+python -m tests.test_homography
 ```
 
 Оси корта: X вдоль длины (0..28 м), Y поперёк (0..15 м), начало координат в ближнем
@@ -35,13 +37,12 @@ python tests/test_homography.py
 Ручной режим не меняется; сеть включается флагом `--auto`.
 
 ```
-pip install -r requirements-nn.txt        # torch (или: pip install -e ".[nn]")
 curl -L -o weights/kalicalib_challenge.pth \
   https://github.com/CEA-LIST/KaliCalib/raw/main/models/model_challenge.pth
 shasum -a 256 weights/kalicalib_challenge.pth
 #   ab2ec59e87fd028740494302f17bcdf2dc0269f6499b4a559fc411f9d507fee7
 python main.py --auto --frame images/source/frame.jpg --highlight images/output/auto.jpg
-python tests/test_kalicalib.py
+python -m tests.test_kalicalib
 ```
 
 Из кода: `KaliCalib(weights).homography(frame)` возвращает `CourtHomography`;
@@ -54,8 +55,8 @@ python tests/test_kalicalib.py
   на других аренах и ракурсах (DeepSport), так что на новых залах проверяйте глазами.
 
 Лицензия KaliCalib — CeCILL 2.1 (GPL-совместимая): для внутренних экспериментов
-ограничений нет, но при распространении кода с `basketball/_vendor/kalicalib/`
-действуют её условия.
+ограничений нет, но при распространении `basketball/kalicalib_model.py` действуют её условия.
+Файл скопирован без изменений из `kalicalib/model_resnet.py` (коммит `3b3f52b`).
 
 ---
 

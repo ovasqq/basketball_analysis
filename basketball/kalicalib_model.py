@@ -1,3 +1,7 @@
+# Архитектура сети KaliCalib, скопирована без изменений из
+# https://github.com/CEA-LIST/KaliCalib (kalicalib/model_resnet.py, коммит 3b3f52b).
+# Лицензия CeCILL 2.1.
+
 from typing import Optional, Callable, Type, Union, List
 
 import torch

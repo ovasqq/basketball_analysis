@@ -1,4 +1,4 @@
-"""Проверки KaliCalib. Запуск: python tests/test_kalicalib.py (или pytest).
+"""Проверки KaliCalib. Запуск из корня проекта: python -m tests.test_kalicalib
 Сквозной тест пропускается, если нет torch или весов."""
 from __future__ import annotations
 

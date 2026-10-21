@@ -5,7 +5,7 @@
 (в воздухе, для гомографии не годятся) и фон. Точки отдаются в CourtHomography --
 ровно как ручные клики из calibration.json.
 
-Нужен torch: pip install -e ".[nn]". Веса -- см. README.
+Нужен torch (requirements.txt). Веса -- см. README.
 
 Из кода:
     kc = KaliCalib("weights/kalicalib_challenge.pth")
@@ -41,7 +41,7 @@ def grid_court_m(length_m=28.0, width_m=15.0):
 class KaliCalib:
     def __init__(self, weights, device=None):
         import torch   # torch нужен только здесь: без него остальной пакет работает
-        from basketball._vendor.kalicalib.model_resnet import makeModel
+        from basketball.kalicalib_model import makeModel
 
         if device is None:
             device = ("cuda" if torch.cuda.is_available() else
