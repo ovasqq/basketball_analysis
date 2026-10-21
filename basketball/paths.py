@@ -2,7 +2,7 @@
 поэтому скрипты работают при запуске откуда угодно."""
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent   # корень проекта
 CALIBRATION = ROOT / "calibration.json"
 IMAGES = ROOT / "images"
 SOURCE_DIR = IMAGES / "source"     # исходные кадры (в git)

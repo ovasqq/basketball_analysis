@@ -1,7 +1,7 @@
 """Маленький UI: кликаете по фото, координаты (в пикселях ОРИГИНАЛА) печатаются в консоль.
 
-    python click_points.py images/source/frame.jpg
-    python click_points.py images/source/frame.jpg --scale 1      # показать без уменьшения
+    python tools/click_points.py images/source/frame.jpg
+    python tools/click_points.py images/source/frame.jpg --scale 1      # показать без уменьшения
 
 Управление:
     левый клик   -- добавить точку

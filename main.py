@@ -5,7 +5,7 @@
     python main.py --frame images/source/frame.jpg --highlight images/output/frame_lightened.jpg
     python main.py другая_калибровка.json ...
 
-Пути по умолчанию -- в paths.py.
+Пути по умолчанию -- в basketball/paths.py.
 """
 from __future__ import annotations
 
@@ -15,9 +15,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from court_homography import CourtHomography
-from court_markings import draw_markings
-from paths import CALIBRATION, OUTPUT_DIR
+from basketball.homography import CourtHomography
+from basketball.markings import draw_markings
+from basketball.paths import CALIBRATION, OUTPUT_DIR
 
 
 def _imwrite(path, img):

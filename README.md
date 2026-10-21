@@ -5,19 +5,21 @@
 
 | Файл | Что делает |
 |---|---|
-| `court_homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
-| `court_markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
-| `click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
 | `main.py` | CLI |
-| `paths.py` | пути проекта (калибровка, папки с изображениями) |
+| `basketball/homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
+| `basketball/markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
+| `basketball/paths.py` | пути проекта (калибровка, папки с изображениями) |
+| `tools/click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
+| `tests/` | быстрые проверки |
 | `OCCLUSION.md` | как не рисовать разметку поверх объектов |
 | `images/source/` | исходные кадры (в git) |
 | `images/output/` | результаты запусков: вид сверху, подсветка (не в git) |
 
 ```
 pip install -r requirements.txt
+pip install -e .     # пакет basketball виден из любого скрипта, правки подхватываются сразу
 python main.py --frame images/source/frame.jpg --highlight images/output/frame_lightened.jpg
-python test_court_homography.py
+python tests/test_homography.py
 ```
 
 Оси корта: X вдоль длины (0..28 м), Y поперёк (0..15 м), начало координат в ближнем

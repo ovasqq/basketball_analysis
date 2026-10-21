@@ -1,12 +1,12 @@
-"""Быстрые проверки калибровки. Запуск: python test_court_homography.py (или pytest)."""
+"""Быстрые проверки калибровки. Запуск: python tests/test_homography.py (или pytest)."""
 from __future__ import annotations
 
 import warnings
 
 import numpy as np
 
-from court_homography import CourtHomography
-from paths import CALIBRATION as JSON
+from basketball.homography import CourtHomography
+from basketball.paths import CALIBRATION as JSON
 
 
 def test_same_aspect_no_warning_and_scales():
