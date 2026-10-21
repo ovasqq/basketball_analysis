@@ -6,8 +6,7 @@ import warnings
 import numpy as np
 
 from court_homography import CourtHomography
-
-JSON = "calibration.json"
+from paths import CALIBRATION as JSON
 
 
 def test_same_aspect_no_warning_and_scales():

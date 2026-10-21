@@ -1,27 +1,39 @@
 """CLI: калибровка -> отчёт, перевод точек, вид сверху, подсветка разметки.
 
-    python main.py calibration.json
-    python main.py calibration.json --point 655 447 --frame frame.jpg --out topdown.png
-    python main.py calibration.json --frame frame.jpg --highlight frame_lightened.jpg
+    python main.py                                   # calibration.json из корня проекта
+    python main.py --point 655 447 --frame images/source/frame.jpg
+    python main.py --frame images/source/frame.jpg --highlight images/output/frame_lightened.jpg
+    python main.py другая_калибровка.json ...
+
+Пути по умолчанию -- в paths.py.
 """
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 import cv2
 import numpy as np
 
 from court_homography import CourtHomography
 from court_markings import draw_markings
+from paths import CALIBRATION, OUTPUT_DIR
+
+
+def _imwrite(path, img):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    if not cv2.imwrite(str(path), img):
+        raise SystemExit(f"не удалось сохранить: {path}")
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("json_path")
+    ap.add_argument("json_path", nargs="?", default=CALIBRATION,
+                    help="файл калибровки (по умолчанию calibration.json в корне проекта)")
     ap.add_argument("--point", nargs=2, type=float, action="append", metavar=("X", "Y"),
                     help="пиксель на кадре (можно несколько раз)")
     ap.add_argument("--frame", help="кадр для построения вида сверху / подсветки разметки")
-    ap.add_argument("--out", default="topdown.png", help="куда сохранить вид сверху")
+    ap.add_argument("--out", default=OUTPUT_DIR / "topdown.png", help="куда сохранить вид сверху")
     ap.add_argument("--highlight", metavar="OUT",
                     help="сохранить кадр с подсвеченной разметкой (нужен --frame)")
     ap.add_argument("--px-per-m", type=float, default=40.0)
@@ -51,10 +63,10 @@ def main():
         for t in tops:
             if np.isfinite(t).all():
                 cv2.circle(topdown, (round(t[0]), round(t[1])), 5, (0, 0, 255), -1)
-        cv2.imwrite(a.out, topdown)
+        _imwrite(a.out, topdown)
         print(f"вид сверху сохранён: {a.out}")
     if a.highlight:
-        cv2.imwrite(a.highlight, draw_markings(ch, frame))
+        _imwrite(a.highlight, draw_markings(ch, frame))
         print(f"подсветка разметки сохранена: {a.highlight}")
 
 

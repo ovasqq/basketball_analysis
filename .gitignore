@@ -3,5 +3,4 @@ __pycache__/
 .DS_Store
 
 # результаты запусков
-topdown.png
-frame_lightened.jpg
+images/output/
