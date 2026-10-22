@@ -125,6 +125,30 @@ class CourtHomography:
                    d["court"]["length_m"], d["court"]["width_m"],
                    names=[p.get("name") for p in pts], **kw)
 
+    @classmethod
+    def from_keypoints(cls, image_pts, court_pts, length_m=28.0, width_m=15.0, orient=True, **kw):
+        """Гомография по точкам нейросети. Шаблоны сетей из разных проектов отсчитывают
+        оси корта по-своему (Y от дальней боковой, X справа налево и т.п.), поэтому
+        при orient=True оси приводятся к нашей конвенции по самому кадру: в центре
+        корта +X должен идти вправо по кадру, +Y -- вверх (от камеры). Если нет,
+        точки шаблона отражаются (x -> L - x и/или y -> W - y) и H считается заново."""
+        crt = _pts(court_pts, "court_pts").copy()
+        ch = cls(image_pts, crt, length_m, width_m, **kw)
+        if not orient:
+            return ch
+        c = np.array([length_m / 2, width_m / 2])
+        p0, px, py = ch.court_to_image([c, c + [1.0, 0.0], c + [0.0, 1.0]])
+        if not np.isfinite([p0, px, py]).all():
+            return ch           # центр корта за горизонтом: направление осей не определить
+        flip_x, flip_y = px[0] < p0[0], py[1] > p0[1]
+        if not (flip_x or flip_y):
+            return ch
+        if flip_x:
+            crt[:, 0] = length_m - crt[:, 0]
+        if flip_y:
+            crt[:, 1] = width_m - crt[:, 1]
+        return cls(image_pts, crt, length_m, width_m, **kw)
+
     # --------------------------------------------------- изображение <-> корт (метры)
     def image_to_court(self, pts):
         return _apply(self.H_img2court, pts)

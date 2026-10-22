@@ -7,9 +7,9 @@ import importlib.util
 import cv2
 import numpy as np
 
-from basketball.homography import CourtHomography
 from basketball.kalicalib import grid_court_m
 from basketball.paths import CALIBRATION, KALICALIB_WEIGHTS, SOURCE_DIR
+from basketball.topdown.homography import CourtHomography
 
 
 def test_grid_matches_kalicalib_template():

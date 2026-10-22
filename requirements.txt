@@ -1,3 +1,8 @@
-numpy==2.5.4
-opencv-python==5.0.0.93
+# Python 3.13: пакет inference (court33) не ставится на 3.14.
+# opencv и numpy -- версии, которые допускает inference.
+numpy==2.3.5
+opencv-python==4.11.0.86
 torch==2.14.1
+torchvision==0.29.1
+ultralytics==8.4.183   # court18 (AGPL-3.0)
+inference==1.8.1       # court33 (Roboflow, нужен ROBOFLOW_API_KEY)

@@ -6,25 +6,54 @@
 | Файл | Что делает |
 |---|---|
 | `main.py` | CLI |
-| `basketball/homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
-| `basketball/markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
-| `basketball/kalicalib.py` | автокалибровка нейросетью KaliCalib (необязательно, нужен torch) |
-| `basketball/kalicalib_model.py` | архитектура сети KaliCalib (копия, см. ниже) |
+| `basketball/topdown/homography.py` | гомография кадр ↔ корт ↔ вид сверху (OpenCV, RANSAC) |
+| `basketball/topdown/markings.py` | шаблон разметки FIBA, подсветка разметки на кадре |
+| `basketball/kalicalib/` | сеть KaliCalib: `model.py` (архитектура, копия), `kalicalib.py` (кадр -> гомография) |
+| `basketball/court18/` | YOLOv8-pose на 18 точек корта (HoopVision и др.), нужен ultralytics |
+| `basketball/court33/` | Roboflow basketball-court-detection-2 на 33 точки, нужен inference |
+| `basketball/players/` | детекция игроков (YOLO, COCO person) и пиксель «низа ног», нужен ultralytics |
+| `tools/detect_feet.py` | изображения → JSON с точками ног игроков (и метрами корта по калибровке) |
 | `basketball/paths.py` | пути проекта (калибровка, папки с изображениями, веса) |
 | `tools/click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
 | `tests/` | быстрые проверки |
 | `OCCLUSION.md` | как не рисовать разметку поверх объектов |
+| `NETWORKS.md` | архитектуры сетей калибровки, как их обучали, как дообучить |
 | `images/source/` | исходные кадры (в git) |
 | `images/output/` | результаты запусков: вид сверху, подсветка (не в git) |
 
 Все команды запускаются **из корня проекта**. Скрипты в подпапках, которые
 импортируют `basketball` (тесты), запускаются через `python -m`.
 
+Окружение одно, на **Python 3.13**: `inference` (court33) пока не ставится на 3.14.
+
 ```
-pip install -r requirements.txt
+uv venv --python 3.13 .venv && source .venv/bin/activate
+uv pip install -r requirements.txt
 python main.py --frame images/source/frame.jpg --highlight images/output/frame_lightened.jpg
 python -m tests.test_homography
+python -m tests.test_court_nets
 ```
+
+## Как строится гомография: `--method`
+
+| `--method` | Откуда точки | Что нужно |
+|---|---|---|
+| `manual` (по умолчанию) | клики из `calibration.json` (`tools/click_points.py`) | ничего |
+| `kalicalib` | KaliCalib, 91 точка сетки по полу | torch, `weights/kalicalib_challenge.pth` |
+| `court18` | YOLOv8-pose, 18 точек на линиях разметки | ultralytics, `weights/court18_yolov8_pose.pt` |
+| `court33` | Roboflow basketball-court-detection-2, 33 точки | пакет inference, `ROBOFLOW_API_KEY` |
+
+Для любой сети `--frame` обязателен. `--min-score` задаёт порог уверенности точки,
+`--thresh` — порог RANSAC, `--weights` — другой файл весов. Каждая сеть
+лежит в своей папке и отдаёт одно и то же: `.keypoints(frame)` → (пиксели, метры,
+уверенность) и `.homography(frame)` → `CourtHomography`.
+
+У шаблонов сетей из разных проектов оси корта направлены по-разному.
+`CourtHomography.from_keypoints` приводит их к нашей конвенции по самому кадру:
++X вправо, +Y от камеры. Поэтому начало координат всегда в ближнем левом углу.
+
+Все три сети обучены на трансляциях NBA или профессиональных лиг. На наших
+залах их надо проверять глазами (`--highlight`).
 
 Оси корта: X вдоль длины (0..28 м), Y поперёк (0..15 м), начало координат в ближнем
 к камере левом углу, Y растёт от камеры.
@@ -34,14 +63,14 @@ python -m tests.test_homography
 Вместо ручных точек из `calibration.json` их находит сеть
 [KaliCalib](https://github.com/CEA-LIST/KaliCalib) (ResNet18 + декодер, MMSports 2022):
 91 ключевая точка на сетке по полу корта → та же `CourtHomography` с RANSAC.
-Ручной режим не меняется; сеть включается флагом `--auto`.
+Включается флагом `--method kalicalib`.
 
 ```
 curl -L -o weights/kalicalib_challenge.pth \
   https://github.com/CEA-LIST/KaliCalib/raw/main/models/model_challenge.pth
 shasum -a 256 weights/kalicalib_challenge.pth
 #   ab2ec59e87fd028740494302f17bcdf2dc0269f6499b4a559fc411f9d507fee7
-python main.py --auto --frame images/source/frame.jpg --highlight images/output/auto.jpg
+python main.py --method kalicalib --frame images/source/frame.jpg --highlight images/output/auto.jpg
 python -m tests.test_kalicalib
 ```
 
@@ -55,8 +84,100 @@ python -m tests.test_kalicalib
   на других аренах и ракурсах (DeepSport), так что на новых залах проверяйте глазами.
 
 Лицензия KaliCalib — CeCILL 2.1 (GPL-совместимая): для внутренних экспериментов
-ограничений нет, но при распространении `basketball/kalicalib_model.py` действуют её условия.
+ограничений нет, но при распространении `basketball/kalicalib/model.py` действуют её условия.
 Файл скопирован без изменений из `kalicalib/model_resnet.py` (коммит `3b3f52b`).
+
+## YOLOv8-pose на 18 точек (`court18`)
+
+Это модель из туториала «basketball analysis». Её используют
+[HoopVision](https://github.com/Perceptron04/HoopVision),
+[HanaFEKI/AI_BasketBall_Analysis_v1](https://github.com/HanaFEKI/AI_BasketBall_Analysis_v1) и
+[nba-vision](https://github.com/j7yn/nba-vision). Модель отдаёт 18 точек: углы,
+края трапеций, концы средней линии и точки трёхочковой у лицевых. Шаблон в метрах
+взят из их `TacticalViewConverter`, он ближе к разметке NBA, чем FIBA.
+
+Веса — из первоисточника, туториала
+[abdullahtarek/basketball_analysis](https://github.com/abdullahtarek/basketball_analysis),
+с которого скопированы HoopVision, HanaFEKI и nba-vision (раздел «Training the Models»
+в его README). Это YOLOv8x-pose, `kpt_shape [18, 3]`, файл 418 МБ:
+
+```
+uvx gdown 1nGoG-pUkSg4bWAUIeQ8aN6n7O1fOkXU0 -O weights/court18_yolov8_pose.pt
+shasum -a 256 weights/court18_yolov8_pose.pt
+#   f6263105e5c2338fafcfd5a6fefd7d1d441e87364635e918dfdbb849f2df1377
+```
+
+Pickle внутри проверен статически: импортирует только классы torch и ultralytics.
+`Court18` при загрузке проверяет, что это pose-модель на 18 точек.
+Можно и обучить самому: `training_notebooks/basketball_court_keypoint_training.ipynb`
+из HoopVision на датасете Roboflow `reloc2-den7l`.
+
+Что известно на `images/source/frame.jpg`: **не годится**. Корт найден (бокс 0.95),
+но уверенные точки (0.56–0.98) все в полосе x ≈ 630–770 px, то есть в левой трети
+корта. Сеть подписывает их как углы лицевой и концы средней линии. С порогом 0.5
+остаётся 6 точек и 4 инлайера: гомография проходит через них точно (отсюда
+«медиана 0 px»), но расхождение с ручной калибровкой в углах корта — до 1300 px.
+Похоже, что как и court33: обучена на трансляциях NBA с половиной площадки, а не на
+виде сверху на весь корт.
+
+**Осторожно:** `.pt` — это pickle, при загрузке ultralytics исполняет код из файла.
+Берите веса только из доверенного источника. Лицензия ultralytics — AGPL-3.0.
+
+```
+python main.py --method court18 --frame images/source/frame.jpg --highlight images/output/court18.jpg
+```
+
+## Roboflow, 33 точки (`court33`)
+
+Модель `basketball-court-detection-2/14` используют
+[roboflow/sports](https://github.com/roboflow/sports) (ветка `feat/basketball`),
+[cs25m116/…Identification](https://github.com/cs25m116/Basketball-Player-Detection-Tracking-Identification) и
+[nba_3d_scene_reconstruction](https://github.com/elijahzhao24/nba_3d_scene_reconstruction).
+Она отдаёт 33 вершины разметки из `sports/basketball/config.py`. Шаблон считается
+по размерам FIBA. Точки 6 и 26 («под кольцом», на кадре это скорее само кольцо в
+воздухе) в гомографию не идут.
+
+Пакет `inference` по API-ключу скачивает веса (ONNX) и дальше считает локально.
+Ключ: аккаунт на app.roboflow.com → Settings → API Keys → Private API Key
+(модель публичная, подходит ключ любого аккаунта).
+
+```
+export ROBOFLOW_API_KEY=...
+MODEL_CACHE_DIR=weights/roboflow python main.py --method court33 \
+    --frame images/source/frame.jpg --highlight images/output/court33.jpg
+```
+
+Что известно на `images/source/frame.jpg`: **не годится**. Шаблон точек верный:
+трапеция и углы левой половины совпадают с ручной калибровкой с точностью до
+отражения Y, которое `from_keypoints` исправляет. Но сеть уверенно (0.96–0.99)
+ставит точки средней линии на правую трёхочковую, примерно на 19–21 м вместо 14,
+и согласованно «сжимает» корт. RANSAC берёт эту ложную версию, а остальные
+уверенные точки все в левой трети кадра и правую половину не задают. Расхождение
+с ручной калибровкой — сотни пикселей. Скорее всего, сказывается обучение на
+трансляциях NBA, где в кадре обычно половина площадки.
+
+При первом запуске веса скачиваются в `MODEL_CACHE_DIR` (по умолчанию `/tmp/cache`),
+дальше берутся оттуда. При импорте `inference` сыплет предупреждениями про
+необязательные модели (SAM, YoloWorld и т.п.), на court33 они не влияют.
+
+Не перенесены: у [sportcal](https://github.com/oscardiaz1331/sportcal) (AGPL) и
+[CourtVision](https://github.com/moorexavierb/CourtVision) веса не опубликованы, обе
+предлагают обучить модель самостоятельно.
+
+## Игроки: точка ног
+
+Игрок переводится на корт по **низу ног**, то есть по середине нижней стороны бокса.
+Это точка на полу, а для точек на полу гомография верна. Детектор — официальный
+YOLO11s от ultralytics (COCO, класс person), трекинг — встроенный ByteTrack.
+
+```
+curl -L -o weights/yolo11s.pt https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s.pt
+#   sha256 85a76fe86dd8afe384648546b56a7a78580c7cb7b404fc595f97969322d502d5
+python -m tools.detect_feet кадр.jpg --calibration calibration.json --draw images/output/feet
+```
+
+Ошибки метода: в прыжке точка уезжает от камеры; если ноги закрыты другим
+игроком, бокс обрезан снизу и точка смещается к камере.
 
 ---
 
@@ -154,7 +275,7 @@ JSON Lines: одна строка на **каждый** кадр, в том чи
   расстояние / положение камеры. Сейчас они оцениваются по гомографии грубо.
   Нужны 6+ калибровочных точек, лучше и с высотой (кольцо: 3.05 м).
 - **Неподвижная камера** или гомография на каждый кадр (планируется через
-  ключевые точки корта, KaliCalib).
+  ключевые точки корта, `--method`).
 - **fps / таймстемпы** исходного видео.
 
 ## Что получится на выходе

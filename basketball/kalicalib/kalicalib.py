@@ -16,7 +16,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-from basketball.homography import CourtHomography
+from basketball.topdown.homography import CourtHomography
 
 NET_W, NET_H = 960, 540        # вход сети
 STRIDE = 4                     # выход сети в 1/4 разрешения входа
@@ -41,7 +41,7 @@ def grid_court_m(length_m=28.0, width_m=15.0):
 class KaliCalib:
     def __init__(self, weights, device=None):
         import torch   # torch нужен только здесь: без него остальной пакет работает
-        from basketball.kalicalib_model import makeModel
+        from basketball.kalicalib.model import makeModel
 
         if device is None:
             device = ("cuda" if torch.cuda.is_available() else
@@ -89,5 +89,5 @@ class KaliCalib:
         if thresh_px is None:
             thresh_px = 35.0 * frame_bgr.shape[1] / NET_W
         names = [f"kp{i}" for i in range(int(keep.sum()))]
-        return CourtHomography(img[keep], crt[keep], length_m, width_m,
-                               thresh_px=thresh_px, names=names)
+        return CourtHomography.from_keypoints(img[keep], crt[keep], length_m, width_m,
+                                              thresh_px=thresh_px, names=names)

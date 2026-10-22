@@ -5,8 +5,8 @@ import warnings
 
 import numpy as np
 
-from basketball.homography import CourtHomography
 from basketball.paths import CALIBRATION as JSON
+from basketball.topdown.homography import CourtHomography
 
 
 def test_same_aspect_no_warning_and_scales():
