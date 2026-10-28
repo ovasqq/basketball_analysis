@@ -1,0 +1,7 @@
+{
+  "_comment": "KaliCalib на images/source/frame.jpg. python main.py -c configs/main_frame_kalicalib.json",
+  "method": "kalicalib",
+  "frame": "images/source/frame.jpg",
+  "out": "images/output/topdown_kalicalib.png",
+  "highlight": "images/output/kalicalib.jpg"
+}

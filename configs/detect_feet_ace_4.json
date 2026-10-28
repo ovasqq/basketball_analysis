@@ -1,0 +1,7 @@
+{
+  "_comment": "Точки ног игроков на выпрямленном кадре ace_4 + метры корта. python -m tools.detect_feet -c configs/detect_feet_ace_4.json",
+  "images": ["images/source/ace_4.jpg"],
+  "calibration": "calibrations/sportcenter_ace_4.json",
+  "conf": 0.3,
+  "draw": "images/output/feet"
+}

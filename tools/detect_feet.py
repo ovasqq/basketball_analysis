@@ -2,6 +2,7 @@
 
     python -m tools.detect_feet images/source/frame.jpg
     python -m tools.detect_feet кадры/*.jpg --calibration calibration.json --draw images/output/feet
+    python -m tools.detect_feet -c configs/detect_feet_ace_4.json
 
 С --calibration к каждой точке добавляются метры корта (court_m; null, если точка за
 горизонтом). С --draw рядом сохраняются кадры с боксами и точками ног.
@@ -16,6 +17,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from basketball.config import parse_args
 from basketball.paths import PLAYERS_WEIGHTS
 from basketball.players import PlayerDetector
 from basketball.topdown.homography import CourtHomography
@@ -34,12 +36,12 @@ def draw_players(frame, players, color=(0, 255, 255)):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("images", nargs="+")
+    ap.add_argument("images", nargs="*")
     ap.add_argument("--weights", default=PLAYERS_WEIGHTS, help="веса детектора людей")
     ap.add_argument("--conf", type=float, default=0.3)
     ap.add_argument("--calibration", help="calibration.json: добавить метры корта")
     ap.add_argument("--draw", metavar="DIR", help="сохранить кадры с боксами и точками ног")
-    a = ap.parse_args()
+    a = parse_args(ap, required=("images",), paths=("images", "weights", "calibration", "draw"))
     if not Path(a.weights).is_file():
         raise SystemExit(f"нет весов детектора: {a.weights} (как скачать -- в README)")
 

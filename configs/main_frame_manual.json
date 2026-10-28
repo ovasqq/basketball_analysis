@@ -1,0 +1,8 @@
+{
+  "_comment": "Ручная калибровка images/source/frame.jpg: вид сверху и подсветка разметки. python main.py -c configs/main_frame_manual.json",
+  "json_path": "calibration.json",
+  "method": "manual",
+  "frame": "images/source/frame.jpg",
+  "out": "images/output/topdown.png",
+  "highlight": "images/output/frame_lightened.jpg"
+}

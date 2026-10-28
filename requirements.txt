@@ -6,3 +6,4 @@ torch==2.14.1
 torchvision==0.29.1
 ultralytics==8.4.183   # court18 (AGPL-3.0)
 inference==1.8.1       # court33 (Roboflow, нужен ROBOFLOW_API_KEY)
+lap==0.5.13            # ByteTrack в ultralytics (трекинг игроков)

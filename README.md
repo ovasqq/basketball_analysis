@@ -13,15 +13,42 @@
 | `basketball/court33/` | Roboflow basketball-court-detection-2 на 33 точки, нужен inference |
 | `basketball/players/` | детекция игроков (YOLO, COCO person) и пиксель «низа ног», нужен ultralytics |
 | `tools/detect_feet.py` | изображения → JSON с точками ног игроков (и метрами корта по калибровке) |
+| `video.py` | обработка видео: выпрямление объектива, калибровка, трекинг игроков → jsonl позиций |
+| `render_video.py` | видео «кадр + мини-карта» по jsonl от `video.py`, без повторной детекции |
+| `basketball/calibrate.py` | выбор способа калибровки корта (общий для `main.py` и `video.py`) |
+| `basketball/video/` | чтение видео, выпрямление объектива (`Lens`), отрисовка кадра с мини-картой |
+| `tools/sportcenter_calib.py` | калибровки корта для камер датасета SportCenter → `calibrations/` |
+| `calibrations/` | калибровки корта для конкретных камер (в git) |
+| `configs/` | JSON-конфиги прогонов для всех CLI (`-c configs/…json`) |
+| `basketball/config.py` | загрузка параметров CLI из конфига |
+| `data/` | датасеты (не в git) |
 | `basketball/paths.py` | пути проекта (калибровка, папки с изображениями, веса) |
-| `tools/click_points.py` | протыкивание калибровочных точек на кадре → `calibration.json` |
+| `tools/click_points.py` | (`python -m tools.click_points`) протыкивание калибровочных точек на кадре → `calibration.json` |
 | `tests/` | быстрые проверки |
 | `OCCLUSION.md` | как не рисовать разметку поверх объектов |
 | `NETWORKS.md` | архитектуры сетей калибровки, как их обучали, как дообучить |
 | `images/source/` | исходные кадры (в git) |
 | `images/output/` | результаты запусков: вид сверху, подсветка (не в git) |
 
-Все команды запускаются **из корня проекта**. Скрипты в подпапках, которые
+Все команды запускаются **из корня проекта**.
+
+## Конфиги
+
+У всех CLI (`main.py`, `video.py`, `tools/*`) параметры можно положить в JSON и
+передать флагом `-c`. Флаги командной строки переопределяют конфиг:
+
+```
+python video.py -c configs/video_ace_4.json
+python video.py -c configs/video_ace_4.json --start 45000 --frames 300
+```
+
+- ключи — имена флагов (`frames` = `--frames`, `px_per_m` = `--px-per-m`,
+  позиционные — по имени: `video`, `images`); ключи на `_` (`_comment`) игнорируются;
+- неизвестный ключ — ошибка, опечатка не пройдёт молча;
+- относительные пути в конфиге считаются от корня проекта;
+- `video.py` пишет итоговые параметры прогона в `<выход>.meta.json`.
+
+Готовые конфиги — в `configs/`. Скрипты в подпапках, которые
 импортируют `basketball` (тесты), запускаются через `python -m`.
 
 Окружение одно, на **Python 3.13**: `inference` (court33) пока не ставится на 3.14.
@@ -163,6 +190,41 @@ MODEL_CACHE_DIR=weights/roboflow python main.py --method court33 \
 Не перенесены: у [sportcal](https://github.com/oscardiaz1331/sportcal) (AGPL) и
 [CourtVision](https://github.com/moorexavierb/CourtVision) веса не опубликованы, обе
 предлагают обучить модель самостоятельно.
+
+## Обработка видео: игроки на схеме корта
+
+`video.py` для неподвижной камеры: каждый кадр выпрямляется по калибровке объектива,
+корт калибруется один раз, игроки детектируются и трекаются (YOLO11s + ByteTrack),
+точка ног переводится в метры корта.
+
+На выходе:
+- `images/output/<видео>.jsonl` — строка на **каждый** кадр:
+  `{"frame", "t", "image_w", "image_h", "players": [{"id", "bbox", "score", "foot_px", "court_m", "flags"}]}`.
+  Флаги: `cut` — бокс касается нижнего края (ноги обрезаны), `off_court` — точка дальше
+  2 м от корта. Таким точкам не верить.
+- `<видео>.meta.json` — откуда что взято (видео, объектив, способ калибровки, H).
+- видео строит отдельно `render_video.py` по jsonl и meta.json: слева кадр с
+  разметкой и игроками, справа мини-карта с хвостами траекторий.
+
+### Датасет SportCenter (EPFL)
+
+Любительский матч, 8 неподвижных синхронных камер, 37 мин, 30 к/с
+([страница](https://www.epfl.ch/labs/cvlab/data/sportcenter-dataset/), бесплатно для
+исследований, просят ссылаться). Архив 6 ГБ распакован в `data/sportcenter/`.
+
+У камер сильная дисторсия (k1 ≈ −0.35), без выпрямления гомография не работает.
+Калибровка корта получается из калибровки камер датасета (`tools/sportcenter_calib.py`),
+KaliCalib на этом зале промахивается. Корт в зале нестандартный, 24.5 × 13.1 м
+(посчитано по разметке, подробнее — в docstring скрипта).
+
+```
+python -m tools.sportcenter_calib --all          # calibrations/sportcenter_ace_*.json
+python video.py -c configs/video_ace_4.json      # -> images/output/ace_4.jsonl (+ .meta.json)
+python render_video.py -c configs/render_ace_4.json   # -> images/output/ace_4.mp4
+```
+
+Скорость на этом Mac (MPS): `video.py` ~50–60 мс/кадр (~1.5–2 мин на минуту видео),
+`render_video.py` — несколько секунд на 30 с видео.
 
 ## Игроки: точка ног
 

@@ -1,0 +1,5 @@
+{
+  "_comment": "Ручная разметка точек на выпрямленном кадре ace_4. python -m tools.click_points -c configs/click_ace_4.json",
+  "image": "images/source/ace_4.jpg",
+  "scale": 1.0
+}

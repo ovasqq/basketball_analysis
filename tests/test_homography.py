@@ -31,6 +31,13 @@ def test_round_trip():
     assert np.allclose(ch.image_to_court(ch.court_to_image(pts)), pts, atol=1e-6)
 
 
+def test_from_matrix_reproduces_homography():
+    ch = CourtHomography.from_json(JSON)
+    again = CourtHomography.from_matrix(ch.H_img2court, ch.length_m, ch.width_m)
+    pts = np.array([[0, 0], [28, 15], [14, 7.5], [3, 12]], float)
+    assert np.allclose(again.court_to_image(pts), ch.court_to_image(pts), atol=1e-6)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

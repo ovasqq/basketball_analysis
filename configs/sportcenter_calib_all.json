@@ -1,0 +1,4 @@
+{
+  "_comment": "Калибровки корта для всех камер SportCenter -> calibrations/. python -m tools.sportcenter_calib -c configs/sportcenter_calib_all.json",
+  "all": true
+}

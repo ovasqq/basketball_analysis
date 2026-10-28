@@ -49,6 +49,26 @@ def _densify(p, step=0.1):
     return np.array(out)
 
 
+def court_to_minimap(pts, width_m=15.0, px_per_m=40.0, pad_m=1.0):
+    """Метры корта (N, 2) -> пиксели схемы draw_court_topdown. Как у вида сверху
+    CourtHomography: дальняя боковая вверху, плюс поле pad_m вокруг корта."""
+    p = np.atleast_2d(np.asarray(pts, float))
+    return np.column_stack([(p[:, 0] + pad_m) * px_per_m, (width_m - p[:, 1] + pad_m) * px_per_m])
+
+
+def draw_court_topdown(length_m=28.0, width_m=15.0, px_per_m=40.0, pad_m=1.0,
+                       floor=(200, 225, 240), line=(40, 40, 40), thickness=2):
+    """Схема корта для мини-карты: разметка FIBA на однотонном полу, поле pad_m
+    вокруг (там видны игроки за линиями)."""
+    w = round((length_m + 2 * pad_m) * px_per_m)
+    h = round((width_m + 2 * pad_m) * px_per_m)
+    img = np.full((h, w, 3), floor, np.uint8)
+    for p in court_lines(length_m, width_m):
+        q = court_to_minimap(p, width_m, px_per_m, pad_m)
+        cv2.polylines(img, [np.round(q).astype(np.int32)], False, line, thickness, cv2.LINE_AA)
+    return img
+
+
 def draw_markings(ch, frame, color=(255, 0, 255), thickness=4, alpha=0.8):
     """Кадр с подсвеченной разметкой. ch -- CourtHomography, откалиброванная
     под размер именно этого кадра (from_json(..., image_size=(w, h)))."""

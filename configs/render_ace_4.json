@@ -1,0 +1,6 @@
+{
+  "_comment": "Видео «кадр + мини-карта» по результатам configs/video_ace_4.json. python render_video.py -c configs/render_ace_4.json",
+  "positions": "images/output/ace_4.jsonl",
+  "out": "images/output/ace_4.mp4",
+  "trail": 45
+}

@@ -1,0 +1,11 @@
+{
+  "_comment": "SportCenter, камера ace_4: 30 с матча -> позиции игроков (images/output/ace_4.jsonl). python video.py -c configs/video_ace_4.json; видео: python render_video.py -c configs/render_ace_4.json",
+  "video": "data/sportcenter/multicam/ace_4.mp4",
+  "lens": "data/sportcenter/calibration.json:ace_4",
+  "method": "manual",
+  "calibration": "calibrations/sportcenter_ace_4.json",
+  "start": 30000,
+  "frames": 900,
+  "stride": 1,
+  "conf": 0.3
+}

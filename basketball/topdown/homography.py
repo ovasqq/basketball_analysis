@@ -126,6 +126,18 @@ class CourtHomography:
                    names=[p.get("name") for p in pts], **kw)
 
     @classmethod
+    def from_matrix(cls, H_img2court, length_m=28.0, width_m=15.0):
+        """Готовая H (кадр -> метры корта), например из <позиции>.meta.json video.py.
+        Точки для конструктора -- сетка 5x5 по корту, спроецированная этой H (точки за
+        горизонтом отбрасываются), поэтому результат совпадает с исходной H."""
+        Hc2i = np.linalg.inv(np.asarray(H_img2court, np.float64))
+        crt = np.array([[x, y] for x in np.linspace(0, length_m, 5)
+                        for y in np.linspace(0, width_m, 5)])
+        img = _apply(Hc2i, crt)
+        ok = np.isfinite(img).all(axis=1)
+        return cls(img[ok], crt[ok], length_m, width_m, method=0)
+
+    @classmethod
     def from_keypoints(cls, image_pts, court_pts, length_m=28.0, width_m=15.0, orient=True, **kw):
         """Гомография по точкам нейросети. Шаблоны сетей из разных проектов отсчитывают
         оси корта по-своему (Y от дальней боковой, X справа налево и т.п.), поэтому

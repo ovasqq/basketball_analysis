@@ -40,12 +40,35 @@ def feet_from_boxes(boxes):
     return np.column_stack([(b[:, 0] + b[:, 2]) / 2, b[:, 3]])
 
 
+def foot_flags(boxes, image_h, court_m, length_m=28.0, width_m=15.0, edge_px=3, margin_m=2.0):
+    """Почему точке ног нельзя верить -- список меток на игрока (пустой: всё в порядке).
+    cut       -- бокс касается нижнего края кадра: ноги обрезаны, точка выше пола;
+    off_court -- точка дальше margin_m от корта или за горизонтом: зритель, судья у
+                 стола, ложная детекция."""
+    b = np.asarray(boxes, float).reshape(-1, 4)
+    c = np.asarray(court_m, float).reshape(-1, 2)
+    flags = []
+    for (_, _, _, y2), (x, y) in zip(b, c):
+        f = []
+        if y2 >= image_h - edge_px:
+            f.append("cut")
+        if not (np.isfinite(x) and np.isfinite(y)
+                and -margin_m <= x <= length_m + margin_m and -margin_m <= y <= width_m + margin_m):
+            f.append("off_court")
+        flags.append(f)
+    return flags
+
+
 class PlayerDetector:
     def __init__(self, weights, device=None, conf=0.3, imgsz=1280):
         # ultralytics нужен только здесь. .pt -- pickle: берите официальные веса ultralytics.
         from ultralytics import YOLO
 
         self.model = YOLO(str(weights))
+        if device is None:      # ultralytics сам берёт только cuda/cpu, Apple GPU -- явно
+            import torch
+            device = ("cuda" if torch.cuda.is_available() else
+                      "mps" if torch.backends.mps.is_available() else "cpu")
         self.device, self.conf, self.imgsz = device, conf, imgsz
 
     def _players(self, r):

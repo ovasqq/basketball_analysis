@@ -1,5 +1,5 @@
 {
-  "_comment": "Ручная калибровка images/source/frame.jpg: пиксели протыканы вручную (python tools/click_points.py кадр.jpg); court_m - координаты точек в метрах по шаблону FIBA. image_rel относительные (0..1): [x / width_px, y / height_px], поэтому калибровка подходит к любому разрешению того же ракурса с тем же соотношением сторон.",
+  "_comment": "Ручная калибровка images/source/frame.jpg: пиксели протыканы вручную (python -m tools.click_points кадр.jpg); court_m - координаты точек в метрах по шаблону FIBA. image_rel относительные (0..1): [x / width_px, y / height_px], поэтому калибровка подходит к любому разрешению того же ракурса с тем же соотношением сторон.",
   "court": {
     "length_m": 28.0,
     "width_m": 15.0,

@@ -1,7 +1,10 @@
 """Маленький UI: кликаете по фото, координаты (в пикселях ОРИГИНАЛА) печатаются в консоль.
 
-    python tools/click_points.py images/source/frame.jpg
-    python tools/click_points.py images/source/frame.jpg --scale 1      # показать без уменьшения
+    python -m tools.click_points images/source/frame.jpg
+    python -m tools.click_points images/source/frame.jpg --scale 1      # показать без уменьшения
+    python -m tools.click_points -c configs/click_ace_4.json
+
+Запуск из корня проекта.
 
 Управление:
     левый клик   -- добавить точку
@@ -21,6 +24,8 @@ import os
 import sys
 
 import cv2
+
+from basketball.config import parse_args
 
 
 class ClickCollector:
@@ -75,10 +80,10 @@ class ClickCollector:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("image")
+    ap.add_argument("image", nargs="?")
     ap.add_argument("--scale", type=float, default=None,
                     help="масштаб показа (по умолчанию: уменьшить до экрана, если нужно)")
-    a = ap.parse_args()
+    a = parse_args(ap, required=("image",), paths=("image",))
 
     img = cv2.imread(a.image)
     if img is None:
